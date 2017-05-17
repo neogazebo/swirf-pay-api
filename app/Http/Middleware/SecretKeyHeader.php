@@ -7,6 +7,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Facades\SwirfFacade;
 use Closure;
 use Illuminate\Contracts\Auth\Factory as Auth;
 use App\Helpers\ResponseHelper as RH;
@@ -55,6 +56,10 @@ class SecretKeyHeader
             {
                 $result['success'] = false;
                 $result['message'] = 'Wrong secret key/application not available';
+            }
+            else
+            {
+                \Swirf::setAppId($app[0]->app_uuid);
             }
         }
 

@@ -17,5 +17,5 @@ $app->get('/', function () use ($app) {
 
 //todo JWT Middleware
 $app->group(['prefix' => 'v1', 'namespace' => 'V1','middleware' => ['SecretKey']], function() use ($app) {
-    $app->post('signup', 'AuthenticationController@signup');
+    $app->post('signin', 'AuthenticationController@signup');
 });
