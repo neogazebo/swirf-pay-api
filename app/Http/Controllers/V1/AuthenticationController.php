@@ -8,6 +8,7 @@ use App\Helpers\ResponseHelper as RH;
 use App\Helpers\TokenHelper as TH;
 use Validator;
 use DB;
+use App\Helpers\DokuHelper as DH;
 
 class AuthenticationController extends BaseController
 {
@@ -31,32 +32,25 @@ class AuthenticationController extends BaseController
         if (!($validator->fails()))
         {
             //todo integration with doku
-            $doku = $this->__getDoku();
+            $doku = $this->__getDoku($request->input());
 
-            if($doku !== false)
+            $account = $this->__signinCheckDB($request->input('email'), self::LOGIN_VIA_EMAIL, $request->input('password'));
+            if($account == null)
             {
-                $account = $this->__signinCheckDB($request->input('email'), self::LOGIN_VIA_EMAIL, $request->input('password'));
-                if($account == null)
-                {
-                    $account = $this->__signup($request, $doku);
-                    if($account !== false)
-                    {
-                        $this->success = true;
-                    }
-                }
-                else
+                $account = $this->__signup($request, $doku);
+                if($account !== false)
                 {
                     $this->success = true;
                 }
+            }
+            else
+            {
+                $this->success = true;
+            }
 
-                if($this->success === true)
-                {
-                    $this->__afterLogin($account);
-
-
-
-                }
-
+            if($this->success === true)
+            {
+                $this->__afterLogin($account);
             }
         }
         else
@@ -115,8 +109,10 @@ class AuthenticationController extends BaseController
     {
         if($account->acc_status == self::ACCOUNT_ACTIVE)
         {
-            $account->token = json_encode(['account_id' => $account->acc_id, 'doku_id' => $account->acc_doku_id, 'email' => $account->acc_email]);
-            $account->token = TH::build($account->token);
+            $token = json_encode(['account_id' => $account->acc_id, 'doku_id' => $account->acc_doku_id, 'email' => $account->acc_email]);
+            $token = TH::build($token);
+
+            $dokuid = $this->__getDoku($account);
 
             $this->data = [
                 'id' => $account->acc_id,
@@ -124,7 +120,8 @@ class AuthenticationController extends BaseController
                 'signup_channel' => $account->acc_signup_channel,
                 'mobile_number' => $account->acc_mobile_number,
                 'country' => $account->acc_country,
-                'token' => $account->token
+                'doku_id' => $dokuid,
+                'token' => $token
             ];
         }
         else
@@ -134,8 +131,8 @@ class AuthenticationController extends BaseController
         }
     }
 
-    private function __getDoku()
+    private function __getDoku($data)
     {
-        return '1122323';
+        return 'asdadada483fsdf';
     }
 }
