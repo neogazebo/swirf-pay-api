@@ -5,6 +5,7 @@ namespace App\Http\Controllers\v1;
 use Laravel\Lumen\Routing\Controller as BaseController;
 use Illuminate\Http\Request;
 use App\Helpers\ResponseHelper as RH;
+use App\Helpers\TokenHelper as TH;
 use Validator;
 use DB;
 
@@ -14,6 +15,8 @@ class AuthenticationController extends BaseController
 
     const LOGIN_VIA_EMAIL = 1;
     const LOGIN_VIA_GOOGLE = 2;
+    const ACCOUNT_ACTIVE = 1;
+    const ACCOUNT_INACTIVE = 0;
 
     public function signup(Request $request){
 
@@ -35,26 +38,25 @@ class AuthenticationController extends BaseController
                 $account = $this->__signinCheckDB($request->input('email'), self::LOGIN_VIA_EMAIL, $request->input('password'));
                 if($account == null)
                 {
-                    $arrInsert = [
-                        'acc_email' => $request->input('email'),
-                        'acc_signup_channel' => $request->input('signup_chanel'),
-                        'acc_mobile_number' => $request->input('phone_number'),
-                        'acc_password' => app('hash')->make($request->input('password')),
-                        'acc_country' => $request->input('country'),
-                        'acc_doku_id' => $doku,
-                        'acc_app_uuid' => \Swirf::getAppId()
-                    ];
-                    $account = $this->__signup($arrInsert);
+                    $account = $this->__signup($request, $doku);
+                    if($account !== false)
+                    {
+                        $this->success = true;
+                    }
                 }
-                $this->data = [
-                    'id' => $account->acc_id,
-                    'email' => $request->input('email'),
-                    'signup_channel' => $request->input('signup_chanel'),
-                    'mobile_number' => $request->input('phone_number'),
-                    'password' => $request->input('password'),
-                    'country' => $request->input('country')
-                ];
-                $this->success = true;
+                else
+                {
+                    $this->success = true;
+                }
+
+                if($this->success === true)
+                {
+                    $this->__afterLogin($account);
+
+
+
+                }
+
             }
         }
         else
@@ -83,11 +85,53 @@ class AuthenticationController extends BaseController
         return;
     }
 
-    private function __signup($data)
+    /**
+     * @param $data
+     * @param $doku
+     * @return bool
+     */
+    private function __signup($data, $doku)
     {
-        $id = DB::table('tbl_account')->insertGetId($data);
-        $account = DB::select("select * from tbl_account where acc_id = {$id} limit 0,1");
-        return $account[0];
+        $arrInsert = [
+            'acc_email' => $request->input('email'),
+            'acc_signup_channel' => $request->input('signup_chanel'),
+            'acc_mobile_number' => $request->input('phone_number'),
+            'acc_password' => app('hash')->make($request->input('password')),
+            'acc_country' => $request->input('country'),
+            'acc_doku_id' => $doku,
+            'acc_app_uuid' => \Swirf::getAppId()
+        ];
+
+        $id = DB::table('tbl_account')->insertGetId($arrInsert);
+        if(!empty($id))
+        {
+            $account = DB::select("select * from tbl_account where acc_id = {$id} limit 0,1");
+            return $account[0];
+        }
+        return false;
+    }
+
+    private function __afterLogin($account)
+    {
+        if($account->acc_status == self::ACCOUNT_ACTIVE)
+        {
+            $account->token = json_encode(['account_id' => $account->acc_id, 'doku_id' => $account->acc_doku_id, 'email' => $account->acc_email]);
+            $account->token = TH::build($account->token);
+
+            $this->data = [
+                'id' => $account->acc_id,
+                'email' => $account->acc_email,
+                'signup_channel' => $account->acc_signup_channel,
+                'mobile_number' => $account->acc_mobile_number,
+                'country' => $account->acc_country,
+                'token' => $account->token
+            ];
+        }
+        else
+        {
+            $this->success = false;
+            $this->message = 'Account Suspended';
+        }
     }
 
     private function __getDoku()
