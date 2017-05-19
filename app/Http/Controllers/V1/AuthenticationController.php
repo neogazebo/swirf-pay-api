@@ -36,7 +36,7 @@ class AuthenticationController extends BaseController
             $doku = $this->__getDoku($request->input());
 
             $account = $this->__signinCheckDB($request->input('email'), self::LOGIN_VIA_EMAIL, $request->input('password'));
-            if($account == null)
+            if($account === null)
             {
                 $account = $this->__signup($request, $doku);
                 if($account !== false)
@@ -46,7 +46,15 @@ class AuthenticationController extends BaseController
             }
             else
             {
-                $this->success = true;
+                if($account === false)
+                {
+                    $this->code = RH::HTTP_UNAUTHORIZED;
+                    $this->message = "Wrong email/password";
+                }
+                else
+                {
+                    $this->success = true;
+                }
             }
 
             if($this->success === true)
@@ -63,7 +71,7 @@ class AuthenticationController extends BaseController
         return $this->json();
     }
 
-    private function __signinCheckDB($email, $via, $password = "", $social_media_id = "")
+    private function __signinCheckDB($email, $via = self::LOGIN_VIA_EMAIL, $password = "", $social_media_id = "")
     {
         if($via == self::LOGIN_VIA_EMAIL)
         {
@@ -77,7 +85,8 @@ class AuthenticationController extends BaseController
                 return false;
             }
         }
-        return;
+        return null;
+        // todo create condition for via Google
     }
 
     /**
