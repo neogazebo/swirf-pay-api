@@ -21,6 +21,7 @@ class AuthenticationController extends BaseController
 
     public function signup(Request $request){
 
+
         $validator = Validator::make($request->all(), [
             'email' => 'required',
             'signup_chanel' => 'required',
@@ -84,7 +85,7 @@ class AuthenticationController extends BaseController
      * @param $doku
      * @return bool
      */
-    private function __signup($data, $doku)
+    private function __signup($request, $doku)
     {
         $arrInsert = [
             'acc_email' => $request->input('email'),
