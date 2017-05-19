@@ -12,7 +12,7 @@ use App\Helpers\DokuHelper as DH;
 
 class AuthenticationController extends BaseController
 {
-    use AppTrait;
+    use \AppTrait;
 
     const LOGIN_VIA_EMAIL = 1;
     const LOGIN_VIA_GOOGLE = 2;
