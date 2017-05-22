@@ -105,7 +105,7 @@ class AuthenticationController extends BaseController
 
             if($this->success === true)
             {
-                $this->__afterLogin($account);
+                $this->__afterLogin($account, self::LOGIN_VIA_GOOGLE);
             }
         }
         else
@@ -179,7 +179,11 @@ class AuthenticationController extends BaseController
         return false;
     }
 
-    private function __afterLogin($account)
+    /**
+     * @param $account instance of Account
+     * @param $via instance of Account
+     */
+    private function __afterLogin($account, $via = self::LOGIN_VIA_EMAIL)
     {
         if($account->acc_status == self::ACCOUNT_ACTIVE)
         {
@@ -194,7 +198,7 @@ class AuthenticationController extends BaseController
                 $account->acc_doku_id = $doku_id;
             }
 
-            $this->data = [
+            $arrResult = [
                 'id' => $account->acc_id,
                 'email' => $account->acc_email,
                 'signup_channel' => $account->acc_signup_channel,
@@ -203,6 +207,13 @@ class AuthenticationController extends BaseController
                 'doku_id' => $account->acc_doku_id,
                 'token' => $token
             ];
+
+            if($via == self::LOGIN_VIA_GOOGLE)
+            {
+                $arrResult['google_id'] = $account->acc_google_id;
+            }
+            $this->data = $arrResult;
+
         }
         else
         {
