@@ -19,12 +19,13 @@ class AuthenticationController extends BaseController
     const ACCOUNT_ACTIVE = 1;
     const ACCOUNT_INACTIVE = 0;
 
-    public function signup(Request $request){
+    public function signin(Request $request){
+
+        var_dump($request->all());
 
 
         $validator = Validator::make($request->all(), [
             'email' => 'required',
-            'signup_chanel' => 'required',
             'phone_number' => 'required',
             'password' => 'required',
             'country' => 'required',
@@ -32,10 +33,10 @@ class AuthenticationController extends BaseController
 
         if (!($validator->fails()))
         {
-            $account = $this->__signinCheckDB($request->input('email'), self::LOGIN_VIA_EMAIL, $request->input('password'));
+            $account = $this->__signinCheckDB($request, self::LOGIN_VIA_EMAIL);
             if($account === null)
             {
-                $account = $this->__signup($request);
+                $account = $this->__signup($request, self::LOGIN_VIA_EMAIL);
                 if($account !== false)
                 {
                     $this->success = true;
@@ -68,18 +69,75 @@ class AuthenticationController extends BaseController
         return $this->json();
     }
 
-    private function __signinCheckDB($email, $via = self::LOGIN_VIA_EMAIL, $password = "", $social_media_id = "")
+    public function signinGoogle(Request $request){
+
+
+        $validator = Validator::make($request->all(), [
+            'email' => 'required',
+            'phone_number' => 'required',
+            'country' => 'required',
+            'google.id' => 'required'
+        ]);
+
+        if (!($validator->fails()))
+        {
+            $account = $this->__signinCheckDB($request, self::LOGIN_VIA_GOOGLE);
+            if($account === null)
+            {
+                $account = $this->__signup($request, self::LOGIN_VIA_GOOGLE);
+                if($account !== false)
+                {
+                    $this->success = true;
+                }
+            }
+            else
+            {
+                if($account === false)
+                {
+                    $this->code = RH::HTTP_UNAUTHORIZED;
+                    $this->message = "Wrong email/password";
+                }
+                else
+                {
+                    $this->success = true;
+                }
+            }
+
+            if($this->success === true)
+            {
+                $this->__afterLogin($account);
+            }
+        }
+        else
+        {
+            $this->code = RH::HTTP_BAD_REQUEST;
+            $this->message = $validator->errors()->all()[0];
+        }
+
+        return $this->json();
+    }
+
+    private function __signinCheckDB(Request $request, $via = self::LOGIN_VIA_EMAIL)
     {
         if($via == self::LOGIN_VIA_EMAIL)
         {
             $statement = 'select * from tbl_account where acc_email = :email and acc_app_uuid = :app_id  limit 0,1';
-            $account = DB::select($statement, ['email' => $email, 'app_id' => \Swirf::getAppId()]);
+            $account = DB::select($statement, ['email' => $request->input('email'), 'app_id' => \Swirf::getAppId()]);
             if(count($account) == 1)
             {
-                if (app('hash')->check($password, $account[0]->acc_password)) {
+                if (app('hash')->check($request->input('password'), $account[0]->acc_password)) {
                     return $account[0];
                 }
                 return false;
+            }
+        }
+        elseif ($via == self::LOGIN_VIA_GOOGLE)
+        {
+            $statement = 'select * from tbl_account where acc_google_id = :google_id and acc_app_uuid = :app_id  limit 0,1';
+            $account = DB::select($statement, ['google_id' => $request->input('google.id'), 'app_id' => \Swirf::getAppId()]);
+            if(count($account) == 1)
+            {
+                return $account[0];
             }
         }
         return null;
@@ -87,23 +145,32 @@ class AuthenticationController extends BaseController
     }
 
     /**
-     * @param $data
-     * @param $doku
+     * @param $request
+     * @param $via
      * @return bool
      */
-    private function __signup($request)
+    private function __signup(Request $request, $via = self::LOGIN_VIA_EMAIL)
     {
         $arrInsert = [
             'acc_email' => $request->input('email'),
-            'acc_signup_channel' => $request->input('signup_chanel'),
+            'acc_signup_channel' => $via,
             'acc_mobile_number' => $request->input('phone_number'),
-            'acc_password' => app('hash')->make($request->input('password')),
             'acc_country' => $request->input('country'),
             'acc_app_uuid' => \Swirf::getAppId(),
             'acc_created_at' => time()
         ];
 
+        if($via == self::LOGIN_VIA_EMAIL)
+        {
+            $arrInsert['acc_password'] = app('hash')->make($request->input('password'));
+        }
+        elseif ($via == self::LOGIN_VIA_GOOGLE)
+        {
+            $arrInsert['acc_google_id'] = $request->input('google.id');
+        }
+
         $id = DB::table('tbl_account')->insertGetId($arrInsert);
+
         if(!empty($id))
         {
             $account = DB::select("select * from tbl_account where acc_id = {$id} limit 0,1");

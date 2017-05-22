@@ -15,13 +15,13 @@ $app->get('/', function () use ($app) {
     return "Welcome to SWIRF PAY API";
 });
 
-$app->get('/info', function () use ($app){
-   echo phpinfo();
-});
 
 //todo JWT Middleware
 $app->group(['prefix' => 'v1', 'namespace' => 'V1','middleware' => ['SecretKey']], function() use ($app) {
-    $app->post('signin', 'AuthenticationController@signup');
+    $app->group(['prefix' => 'auth'], function () use ($app){
+        $app->post('signin', 'AuthenticationController@signin');
+        $app->post('signin/google', 'AuthenticationController@signinGoogle');
+    });
 });
 
 $app->get('/test', function () use ($app){
