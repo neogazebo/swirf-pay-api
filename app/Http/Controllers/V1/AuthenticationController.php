@@ -32,13 +32,10 @@ class AuthenticationController extends BaseController
 
         if (!($validator->fails()))
         {
-            //todo integration with doku
-            $doku = $this->__getDoku($request->input());
-
             $account = $this->__signinCheckDB($request->input('email'), self::LOGIN_VIA_EMAIL, $request->input('password'));
             if($account === null)
             {
-                $account = $this->__signup($request, $doku);
+                $account = $this->__signup($request);
                 if($account !== false)
                 {
                     $this->success = true;
@@ -94,7 +91,7 @@ class AuthenticationController extends BaseController
      * @param $doku
      * @return bool
      */
-    private function __signup($request, $doku)
+    private function __signup($request)
     {
         $arrInsert = [
             'acc_email' => $request->input('email'),
@@ -102,8 +99,8 @@ class AuthenticationController extends BaseController
             'acc_mobile_number' => $request->input('phone_number'),
             'acc_password' => app('hash')->make($request->input('password')),
             'acc_country' => $request->input('country'),
-            'acc_doku_id' => $doku,
-            'acc_app_uuid' => \Swirf::getAppId()
+            'acc_app_uuid' => \Swirf::getAppId(),
+            'acc_created_at' => time()
         ];
 
         $id = DB::table('tbl_account')->insertGetId($arrInsert);
@@ -122,7 +119,13 @@ class AuthenticationController extends BaseController
             $token = json_encode(['account_id' => $account->acc_id, 'doku_id' => $account->acc_doku_id, 'email' => $account->acc_email]);
             $token = TH::build($token);
 
-            $dokuid = $this->__getDoku($account);
+            if(empty($account->acc_doku_id))
+            {
+                $doku_id = $this->__getDoku($account);
+                $statement = 'update tbl_account set acc_doku_id = :doku_id where acc_id = :acc_id';
+                DB::update($statement,['doku_id' => $doku_id, 'acc_id' => $account->acc_id]);
+                $account->acc_doku_id = $doku_id;
+            }
 
             $this->data = [
                 'id' => $account->acc_id,
@@ -130,7 +133,7 @@ class AuthenticationController extends BaseController
                 'signup_channel' => $account->acc_signup_channel,
                 'mobile_number' => $account->acc_mobile_number,
                 'country' => $account->acc_country,
-                'doku_id' => $dokuid,
+                'doku_id' => $account->acc_doku_id,
                 'token' => $token
             ];
         }
@@ -141,8 +144,12 @@ class AuthenticationController extends BaseController
         }
     }
 
+    /**
+     * @param $data instance Of Account
+     * @return string
+     */
     private function __getDoku($data)
     {
-        return 'asdadada483fsdf';
+        return md5(time());
     }
 }
