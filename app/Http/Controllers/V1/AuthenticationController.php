@@ -21,9 +21,6 @@ class AuthenticationController extends BaseController
 
     public function signin(Request $request){
 
-        var_dump($request->all());
-
-
         $validator = Validator::make($request->all(), [
             'email' => 'required',
             'phone_number' => 'required',
