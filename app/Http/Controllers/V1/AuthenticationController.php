@@ -184,7 +184,7 @@ class AuthenticationController extends BaseController
     {
         if($account->acc_status == self::ACCOUNT_ACTIVE)
         {
-            $token = json_encode(['account_id' => $account->acc_id, 'doku_id' => $account->acc_doku_id, 'email' => $account->acc_email]);
+            $token = json_encode(['account_id' => $account->acc_id, 'doku_id' => $account->acc_doku_id, 'email' => $account->acc_email, 'is_active' => $account->acc_status]);
             $token = TH::build($token);
 
             if(empty($account->acc_doku_id))
