@@ -32,7 +32,7 @@ $app->get('/signon', function () use ($app){
 
     $clientId = env('DOKU_CLIENT_ID');
     $clientSecret = env('DOKU_CLIENT_SECRET');
-    $sharedkey = env('DOKU_SHARED_KYE');
+    $sharedkey = env('DOKU_SHARED_KEY');
 
 //    return $clientId.'|'.$clientSecret.'|'.$sharedkey;
 
@@ -50,7 +50,7 @@ $app->get('/signon', function () use ($app){
     $postfields="clientId={$clientId}&clientSecret={$clientSecret}&sharedKey={$sharedkey}&systrace={$new_systrace}&words={$words}&version=1.0&responseType=1";
 
     $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, "http://dev.dokupay.com/dokupay/h2h/signon");
+    curl_setopt($ch, CURLOPT_URL, "http://103.10.129.109/dokupay/h2h/signon");
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
     curl_setopt($ch, CURLOPT_HEADER, FALSE);
     curl_setopt($ch, CURLOPT_POST, TRUE);
@@ -62,7 +62,7 @@ $app->get('/signon', function () use ($app){
     $message_decode=json_decode($response);
 
 //    return response($message_decode);
-    var_dump($message_decode);exit;
+    dump($message_decode);exit;
 
    //return hash_hmac('sha1',env('DOKU_CLIENT_ID').env('DOKU_SHARED_KYE').'1',env('DOKU_CLIENT_SECRET'));
 });
